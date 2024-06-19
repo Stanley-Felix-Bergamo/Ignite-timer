@@ -29,6 +29,7 @@ interface Cycle {
   minutesAmout: number;
   startDate: Date;
   interruptedDate?: Date;
+  finishedDare?: Date;
 }
 
 export function Home() {
@@ -60,8 +61,8 @@ export function Home() {
   }
 
   function handleInterruptCycle() {
-    setCycles(
-      cycles.map((cycle) => {
+    setCycles((state) =>
+      state.map((cycle) => {
         if (cycle.id === activeCyclesId) {
           return { ...cycle, interruptedDate: new Date() };
         } else {
@@ -74,21 +75,39 @@ export function Home() {
 
   const activeCycle = cycles.find((cycle) => cycle.id === activeCyclesId);
 
+  const totalSeconds = activeCycle ? activeCycle.minutesAmout * 60 : 0;
+
   useEffect(() => {
     let interval: number;
     if (activeCycle) {
       interval = setInterval(() => {
-        setAmountSecondsPassed(
-          differenceInSeconds(new Date(), activeCycle.startDate)
+        const secondsDifference = differenceInSeconds(
+          new Date(),
+          activeCycle.startDate
         );
+
+        if (secondsDifference >= totalSeconds) {
+          setCycles((state) =>
+            state.map((cycle) => {
+              if (cycle.id === activeCyclesId) {
+                return { ...cycle, finishedDare: new Date() };
+              } else {
+                return cycle;
+              }
+            })
+          );
+          setAmountSecondsPassed(totalSeconds);
+          clearInterval(interval);
+        } else {
+          setAmountSecondsPassed(secondsDifference);
+        }
       }, 1000);
     }
     return () => {
       clearInterval(interval);
     };
-  }, [activeCycle]);
+  }, [activeCycle, totalSeconds, activeCyclesId]);
 
-  const totalSeconds = activeCycle ? activeCycle.minutesAmout * 60 : 0;
   const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0;
 
   const minutesAmount = Math.round(currentSeconds / 60);
